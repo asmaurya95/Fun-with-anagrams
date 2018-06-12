@@ -13,16 +13,17 @@
  * limitations under the License.
  */
 
-/*
- @author : Ashutosh Maurya
- */
-
 package com.google.engedu.anagrams;
+
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
@@ -32,63 +33,89 @@ public class AnagramDictionary {
     private static final int DEFAULT_WORD_LENGTH = 3;
     private static final int MAX_WORD_LENGTH = 7;
     private Random random = new Random();
-    private static ArrayList<String> wordList=new ArrayList<String>();// Created an ArrayList
-    private static String s;
+    private static ArrayList<String> wordList = new ArrayList<>();
+    private static HashSet<String> wordSet = new HashSet<>();
+    private static HashMap<String, ArrayList<String>> lettersToWord = new HashMap<>();
 
     public AnagramDictionary(Reader reader) throws IOException {
         BufferedReader in = new BufferedReader(reader);
         String line;
         while((line = in.readLine()) != null) {
             String word = line.trim();
+            String sortedWord = sortLetters(word);
+            if(lettersToWord.containsKey(sortedWord)) {
+                lettersToWord.get(sortedWord).add(word);
+            }
+            else {
+                lettersToWord.put(sortedWord, new ArrayList<>(Arrays.asList(word)));
+            }
+            wordSet.add(word);
             wordList.add(word);
         }
+        /*for (int i = 0; i < wordList.size(); i++) {
+            Log.d("wordList -- ", wordList.get(i));
+        }
+        Log.d("wordList:SIZE", Integer.toString(wordList.size()));*/
+    }
+
+    // Method to check whether a is a substring of b
+    public static boolean isSubstring(String a, String b) {
+        return b.contains(a);
     }
 
     public boolean isGoodWord(String word, String base) {
-        return true;
+        if(wordSet.contains(word) && !isSubstring(base, word))
+            return true;
+        return false;
     }
 
-    public int partition(String word,int low,int high) {
-        StringBuilder str=new StringBuilder(word);
-        int pivot=(int)(str.toString().charAt(high));
-        int wall=low-1;
-        while(low<high){
-            if((int)(str.toString().charAt(low)) <= pivot) {
-                ++wall;
-                str.setCharAt(low,word.charAt(wall));
-                str.setCharAt(wall,word.charAt(low));
+    public static String sortLetters(String word) {
+        String res = "";
+        int alphabet_count[] = new int[(int)Character.MAX_VALUE];
+        for(int i = 0; i < 26; i++) {
+            alphabet_count[i] = 0;
+        }
+        for(int i = 0; i < word.length(); i++) {
+            char ch = word.charAt(i);
+            alphabet_count[(int)ch-(int)('a')]++;
+        }
+        for(int i = 0; i < 26; i++) {
+            while(alphabet_count[i] > 0) {
+                char ch = (char)(i+'a');
+                res += ch;
+                alphabet_count[i] = alphabet_count[i] - 1;
             }
-            ++low;
         }
-        wall++;
-        str.setCharAt(wall,str.toString().charAt(pivot));
-        str.setCharAt(pivot,str.toString().charAt(wall));
-        s=str.toString();
-        return wall;
-    }
-
-    public void sortLetters(String word,int low,int high) {   // Sorting Letters using Quick Sort Algorithm
-        if(low<high){
-            int wall=partition(word,low,high);
-            sortLetters(word,low,wall-1);
-            sortLetters(word,wall+1,high);
-        }
+        return res;
     }
 
     public List<String> getAnagrams(String targetWord) {
-        sortLetters(targetWord,0, targetWord.length()-1);
-        String a=s;
         ArrayList<String> result = new ArrayList<String>();
-        for(String obj:wordList) {
-            sortLetters(obj,0,obj.length()-1);
-            if(a.equals(s))
-                result.add(targetWord);
+        String b = sortLetters(targetWord);
+        for(int i = 0; i < wordList.size(); i++) {
+            String s = wordList.get(i);
+            String a = sortLetters(s);
+            if (a.length() == b.length() && a.equals(b))
+                result.add(wordList.get(i));
         }
         return result;
     }
 
     public List<String> getAnagramsWithOneMoreLetter(String word) {
         ArrayList<String> result = new ArrayList<String>();
+        for(int i = 0; i < 26; i++) {
+            char ch = (char)(i + 97);
+            String key = sortLetters(word + ch);
+            if(lettersToWord.containsKey(key)) {
+                ArrayList<String> a = lettersToWord.get(key);
+                if(wordSet.contains(key))
+                    result.add(key);
+                result.addAll(a);
+            }
+        }
+        /*for(String str : result) {
+            Log.d(word, str);
+        }*/
         return result;
     }
 
